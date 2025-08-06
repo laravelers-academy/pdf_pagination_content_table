@@ -23,6 +23,23 @@ def insert_toc_into_pdf(toc_pdf_path, original_pdf_path, output_pdf_path):
     with open(output_pdf_path, "wb") as f_out:
         writer.write(f_out)
 
+def insert_toc_after_offset(toc_pdf_path, original_pdf_path, output_pdf_path, offset):
+    toc_reader = PdfReader(toc_pdf_path)
+    orig_reader = PdfReader(original_pdf_path)
+    writer = PdfWriter()
+
+    # 1. Copia las páginas de offset (ej. portada)
+    for i in range(offset):
+        writer.add_page(orig_reader.pages[i])
+    # 2. Añade TOC
+    for page in toc_reader.pages:
+        writer.add_page(page)
+    # 3. Añade el resto del PDF
+    for i in range(offset, len(orig_reader.pages)):
+        writer.add_page(orig_reader.pages[i])
+    with open(output_pdf_path, "wb") as f_out:
+        writer.write(f_out)
+
 if __name__ == "__main__":
     base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     input_pdf = os.path.join(base_path, "input.pdf")
@@ -55,10 +72,11 @@ if __name__ == "__main__":
     create_toc_pdf(outline_items, toc_pdf)
     print("PDF de TOC generado.")
 
-    # 4. Insertar el TOC antes del contenido numerado
-    insert_toc_into_pdf(
+    # 4. Insertar el TOC después de la portada
+    insert_toc_after_offset(
         toc_pdf_path=toc_pdf,
         original_pdf_path=numbered_pdf,
-        output_pdf_path=final_pdf
+        output_pdf_path=final_pdf,
+        offset=offset
     )
     print(f"¡Listo! PDF final generado en: {final_pdf}")

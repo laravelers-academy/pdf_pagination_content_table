@@ -697,3 +697,201 @@ if __name__ == "__main__":
 * Si tienes portadas o páginas preliminares, considera el offset en todos los pasos para que la paginación y el TOC sean coherentes.
 
 ---
+
+
+# **Parte VI — Insertar TOC después del offset y ajustar la numeración**
+
+---
+
+## **A. Objetivo**
+
+* Insertar el TOC **después de la(s) página(s) de offset** (no al inicio absoluto).
+* Asegurar que los números de página en el TOC sean los que se ven en el PDF numerado (es decir, que el primer capítulo siempre tenga el número que corresponde a la página donde inicia la numeración).
+* ¡El resultado: portada(s), luego TOC, luego el resto del documento con la paginación correcta!
+
+---
+
+## **B. Ajustes en el flujo**
+
+### 1. **Genera el PDF numerado igual que antes.**
+
+### 2. **Detecta capítulos/temas y asigna números de página del PDF numerado, NO del original.**
+
+* Esto es importante, porque si insertas páginas (el TOC), cambian las posiciones.
+* Lo más robusto: **Primero inserta el TOC, luego numera el PDF final**.
+
+### 3. **Inserta el TOC después del offset**:
+
+* Por ejemplo, si `offset = 1`, deja la primera página intacta, luego mete el TOC, luego el resto.
+
+### 4. **Numera todas las páginas (incluyendo el TOC) después de haber insertado el TOC**.
+
+* Así, la numeración se ajusta a la posición real de cada capítulo/tema.
+* En el TOC, las páginas reflejarán el número **visible** en el PDF, no la física del archivo original.
+
+---
+
+## **C. Implementación: Flujo corregido**
+
+### **1. Crea primero el PDF con offset intacto (portadas, etc).**
+
+### **2. Inserta el TOC después del offset (por ejemplo, después de la portada).**
+
+```python
+from pypdf import PdfReader, PdfWriter
+
+def insert_toc_after_offset(toc_pdf_path, original_pdf_path, output_pdf_path, offset):
+    """
+    Inserta las páginas del TOC después del offset indicado.
+    offset=1 -> deja la primera página (portada) intacta, luego inserta el TOC.
+    """
+    toc_reader = PdfReader(toc_pdf_path)
+    orig_reader = PdfReader(original_pdf_path)
+    writer = PdfWriter()
+
+    # 1. Copia las páginas de offset (por ejemplo, portada)
+    for i in range(offset):
+        writer.add_page(orig_reader.pages[i])
+
+    # 2. Añade el TOC
+    for page in toc_reader.pages:
+        writer.add_page(page)
+
+    # 3. Añade el resto del PDF original
+    for i in range(offset, len(orig_reader.pages)):
+        writer.add_page(orig_reader.pages[i])
+
+    # 4. Guarda el nuevo PDF combinado
+    with open(output_pdf_path, "wb") as f_out:
+        writer.write(f_out)
+```
+
+---
+
+### **3. Ahora, cuando generes el TOC, debes calcular las páginas como el usuario las verá.**
+
+* Si hay portada (offset=1) y luego TOC de 1 página, el **primer capítulo** estará en la página (offset + len(TOC) + 1).
+* Por lo tanto, **detecta los capítulos/temas** en el PDF ya con TOC insertado (no el original).
+
+**Ejemplo para ajustar el find\_outline\_pages:**
+
+* Primero, inserta el TOC provisional (puede estar vacío o solo con títulos).
+* Después, **extrae el texto** de cada página (ahora portada, TOC, contenido).
+* Busca en qué página aparece cada capítulo/tema.
+* Al generar el TOC definitivo, los números serán exactos.
+
+---
+
+### **4. Numera el PDF final (con TOC ya insertado)**
+
+* Usa tu función `add_page_numbers`, pero ahora el offset debe incluir portada + TOC.
+
+  * Ejemplo: offset = 1 (portada) + páginas de TOC
+
+---
+
+## **D. Ejemplo de flujo corregido en main.py**
+
+```python
+import os
+from pypdf import PdfReader
+from numbering import add_page_numbers
+from toc import find_outline_pages
+from toc_pdf import create_toc_pdf
+from outline_parser import parse_outline
+from pypdf import PdfWriter
+
+def insert_toc_into_pdf(toc_pdf_path, original_pdf_path, output_pdf_path):
+    """
+    Inserta las páginas del TOC (toc_pdf_path) antes del PDF original (original_pdf_path).
+    """
+    toc_reader = PdfReader(toc_pdf_path)
+    orig_reader = PdfReader(original_pdf_path)
+    writer = PdfWriter()
+
+    # Añade TOC
+    for page in toc_reader.pages:
+        writer.add_page(page)
+    # Añade el resto del PDF numerado
+    for page in orig_reader.pages:
+        writer.add_page(page)
+    with open(output_pdf_path, "wb") as f_out:
+        writer.write(f_out)
+
+def insert_toc_after_offset(toc_pdf_path, original_pdf_path, output_pdf_path, offset):
+    toc_reader = PdfReader(toc_pdf_path)
+    orig_reader = PdfReader(original_pdf_path)
+    writer = PdfWriter()
+
+    # 1. Copia las páginas de offset (ej. portada)
+    for i in range(offset):
+        writer.add_page(orig_reader.pages[i])
+    # 2. Añade TOC
+    for page in toc_reader.pages:
+        writer.add_page(page)
+    # 3. Añade el resto del PDF
+    for i in range(offset, len(orig_reader.pages)):
+        writer.add_page(orig_reader.pages[i])
+    with open(output_pdf_path, "wb") as f_out:
+        writer.write(f_out)
+
+if __name__ == "__main__":
+    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    input_pdf = os.path.join(base_path, "input.pdf")
+    numbered_pdf = os.path.join(base_path, "numbered.pdf")
+    toc_txt = os.path.join(base_path, "content.txt")
+    toc_pdf = os.path.join(base_path, "toc.pdf")
+    final_pdf = os.path.join(base_path, "final_with_toc.pdf")
+    offset = 1  # Por ejemplo, portada
+
+    # 1. Numerar el PDF
+    reader = PdfReader(input_pdf)
+    print("Is Encrypted:", reader.is_encrypted)
+    add_page_numbers(
+        input_path=input_pdf,
+        output_path=numbered_pdf,
+        offset=offset,
+        font_size=12
+    )
+    print("PDF numerado generado.")
+
+    # 2. Encontrar capítulos/temas y sus páginas
+    outline_items = find_outline_pages(
+        pdf_path=input_pdf,
+        outline_path=toc_txt,
+        offset=offset
+    )
+    print("Capítulos/temas identificados.")
+
+    # 3. Generar el PDF del TOC
+    create_toc_pdf(outline_items, toc_pdf)
+    print("PDF de TOC generado.")
+
+    # 4. Insertar el TOC después de la portada
+    insert_toc_after_offset(
+        toc_pdf_path=toc_pdf,
+        original_pdf_path=numbered_pdf,
+        output_pdf_path=final_pdf,
+        offset=offset
+    )
+    print(f"¡Listo! PDF final generado en: {final_pdf}")
+```
+
+---
+
+### **¿Cómo funciona esto?**
+
+* Se inserta el TOC **después de la portada** (offset).
+* La numeración salta portada + TOC.
+* El TOC muestra los números reales y visibles para el usuario.
+* Si el TOC es de varias páginas, todo sigue alineado.
+* Si tienes más de una portada, ajusta el offset.
+
+---
+
+## **E. Tips y recomendaciones**
+
+* Si no quieres reescribir el TOC dos veces, puedes estimar primero el número de páginas del TOC (por ej., generar uno, contar páginas, luego el real).
+* Si quieres mantener archivos temporales limpios, bórralos después del flujo.
+* Puedes mostrar un resumen del proceso al usuario: “Portada(s): X páginas, TOC: Y páginas, Contenido: Z páginas”.
+
