@@ -1,0 +1,63 @@
+1. Construir la base de aplicaciones web con el patrón MVC
+    1.1 Crear rutas eficientes y seguras en Laravel
+    1.2 Desarrollar controladores para gestionar la lógica de negocio
+    1.3 Implementar modelos Eloquent para interactuar con la base de datos
+    1.4 Diseñar vistas dinámicas utilizando Blade
+    1.5 Organizar la estructura de carpetas y namespaces del proyecto
+    1.6 Validar datos de entrada en formularios de forma robusta
+2. Gestionar respuestas y redirecciones HTTP correctamente
+    2.1 Gestionar bases de datos y relaciones con Eloquent ORM
+    2.2 Definir y ejecutar migraciones para crear esquemas de bases de datos
+    2.3 Sembrar datos de prueba utilizando seeders y factories
+    2.4 Implementar relaciones uno a uno, uno a muchos y muchos a muchos
+    2.5 Optimizar consultas complejas con Eloquent y Query Builder
+    2.6 Aplicar scopes y mutators para manipular datos de modelos
+    2.7 Proteger modelos mediante asignación masiva y casting
+    2.8 Gestionar transacciones y manejo de errores en operaciones de base de datos
+3. Implementar autenticación y autorización seguras
+    3.1 Configurar sistemas de autenticación con Laravel Breeze y Fortify
+    3.2 Gestionar sesiones y recuperación de contraseñas
+    3.3 Restringir acceso mediante middlewares personalizados
+    3.4 Asignar y verificar roles y permisos de usuario
+    3.5 Proteger rutas y recursos sensibles con políticas y gates
+    3.6 Integrar autenticación social con OAuth y servicios externos
+4. Desarrollar APIs RESTful profesionales con Laravel
+    4.1 Construir controladores de API y rutas versionadas
+    4.2 Serializar recursos utilizando API Resources
+    4.3 Implementar autenticación de API con Sanctum y Passport
+    4.4 Gestionar validaciones y respuestas personalizadas en endpoints
+    4.5 Documentar APIs utilizando Swagger y Laravel OpenAPI
+    4.6 Probar endpoints con Postman y PHPUnit
+    4.7 Proteger APIs contra ataques comunes y rate limiting
+5. Construir interfaces dinámicas con Blade y Vue.js
+    5.1 Integrar Vue.js en proyectos Laravel utilizando Vite
+    5.2 Desarrollar componentes reutilizables con Blade y Vue
+    5.3 Consumir APIs desde el frontend con Axios
+    5.4 Gestionar estados y eventos entre componentes Vue
+    5.5 Implementar validaciones en tiempo real en formularios
+    5.6 Optimizar el rendimiento del frontend con lazy loading
+    5.7 Personalizar layouts y plantillas Blade para aplicaciones SPA
+6. Integrar comunicación en tiempo real con Laravel Echo y Pusher
+    6.1 Configurar broadcasting con Laravel Echo y Pusher
+    6.2 Emitir y escuchar eventos en tiempo real desde el backend
+    6.3 Actualizar interfaces automáticamente con listeners de frontend
+    6.4 Gestionar canales públicos y privados de comunicación
+    6.5 Proteger eventos y canales mediante autenticación
+    6.6 Solucionar problemas comunes de sincronización en tiempo real
+7. Aplicar buenas prácticas y patrones de desarrollo profesional
+    7.1 Implementar principios SOLID en proyectos Laravel
+    7.2 Utilizar servicios y repositorios para desacoplar lógica
+    7.3 Gestionar dependencias con el contenedor de servicios
+    7.4 Automatizar pruebas unitarias y de integración
+    7.5 Aplicar TDD en el desarrollo de nuevas funcionalidades
+    7.6 Documentar código y procesos de desarrollo de forma profesional
+    7.7 Revisar y refactorizar código para mejorar mantenibilidad
+8. Optimizar, depurar y desplegar aplicaciones Laravel
+    8.1 Detectar y solucionar errores con herramientas de debugging
+    8.2 Optimizar el rendimiento mediante caché y optimización de consultas
+    8.3 Gestionar colas y jobs para procesos asíncronos
+    8.4 Automatizar tareas recurrentes con Laravel Scheduler
+    8.5 Preparar la aplicación para producción con optimizaciones clave
+    8.6 Desplegar proyectos en servidores y plataformas cloud
+    8.7 Configurar CI/CD para despliegue automatizado
+    8.8 Monitorear y mantener aplicaciones en producción

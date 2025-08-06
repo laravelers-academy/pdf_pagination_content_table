@@ -355,3 +355,179 @@ Cuando tengas esto listo:
 * Verifica que **sí imprime texto de cada página**.
 
 ---
+
+¡Por supuesto! Aquí tienes **todo desde la Parte IV**, súper detallado y **con los comentarios incluidos** en cada sección de código. Así puedes continuar el desarrollo y usarlo como referencia didáctica:
+
+---
+
+# **Parte IV — Parsear el outline (content.txt) y buscar capítulos/temas en el PDF**
+
+---
+
+## **A. Estructura profesional del proyecto**
+
+```
+pdf-num-toc/
+├── requirements.txt
+├── .gitignore
+├── input.pdf             # PDF de prueba
+├── content.txt           # Outline numerado e indentado
+└── src/
+    ├── __init__.py
+    ├── main.py
+    ├── numbering.py
+    ├── toc.py            # Extrae texto de PDF y busca capítulos
+    └── outline_parser.py # Parseador de content.txt (outline)
+```
+
+---
+
+## **B. Paso 1 — Parsear el archivo outline**
+
+Crea `src/outline_parser.py`
+Este archivo lee y procesa tu archivo outline (numerado e indentado), entregando una estructura de capítulos/temas con sus niveles.
+
+```python
+import re
+
+def clean_title(title):
+    """
+    Elimina la numeración inicial (1. o 1.1, etc) y espacios extras para facilitar comparación.
+    """
+    return re.sub(r"^\s*\d+(\.\d+)*\s*\.?\s*", "", title).strip()
+
+def parse_outline(txt_path):
+    """
+    Lee el outline de capítulos/temas y devuelve una lista:
+    [
+        {'title': '...', 'level': 0, 'raw': '1. ...'},
+        {'title': '...', 'level': 1, 'raw': '1.1 ...'},
+        ...
+    ]
+    """
+    outline = []
+    with open(txt_path, encoding="utf-8") as f:
+        for line in f:
+            clean = line.rstrip("\n")
+            if not clean.strip():
+                continue  # ignora líneas vacías
+            # Cuenta la indentación (4 espacios = 1 nivel, o tabs)
+            leading_spaces = len(clean) - len(clean.lstrip(' \t'))
+            level = clean.count('\t') + (leading_spaces // 4)
+            raw = clean.strip()
+            title = clean_title(raw)
+            outline.append({'title': title, 'level': level, 'raw': raw})
+    return outline
+
+# Prueba rápida
+if __name__ == "__main__":
+    outline = parse_outline("../content.txt")
+    for item in outline:
+        print(f"Level {item['level']} | Title: {item['title']} | Raw: {item['raw']}")
+```
+
+---
+
+## **C. Paso 2 — Buscar los capítulos/temas en el PDF y asociar página**
+
+Modifica `src/toc.py` para usar tu outline y encontrar en qué página está cada título.
+
+```python
+import pdfplumber  # Importa la librería pdfplumber, que sirve para extraer texto de archivos PDF
+from outline_parser import parse_outline, clean_title
+
+def extract_pages_text(pdf_path):
+    """
+    Devuelve una lista con el texto extraído de cada página de un PDF.
+
+    Args:
+        pdf_path (str): Ruta al archivo PDF que quieres procesar.
+
+    Returns:
+        list[str]: Una lista donde cada elemento es el texto completo de una página del PDF.
+    """
+    pages_text = []  # Aquí se guardarán los textos de cada página
+
+    # Abre el PDF usando pdfplumber
+    with pdfplumber.open(pdf_path) as pdf:
+        # Recorre todas las páginas del PDF
+        for page in pdf.pages:
+            # Extrae el texto de la página; si no hay texto, usa string vacío ("")
+            text = page.extract_text() or ""
+            # Agrega el texto extraído a la lista
+            pages_text.append(text)
+
+    # Retorna la lista con los textos de todas las páginas
+    return pages_text
+
+def find_outline_pages(pdf_path, outline_path, offset=0):
+    """
+    Devuelve una lista donde cada item es:
+    {'title': ..., 'level': ..., 'page': ...}
+
+    Busca cada título del outline en el texto de cada página del PDF.
+    Si lo encuentra, asocia el número de página (respetando offset).
+    """
+    outline = parse_outline(outline_path)
+    pages_text = extract_pages_text(pdf_path)
+    results = []
+
+    for item in outline:
+        found = False
+        for page_num, page_text in enumerate(pages_text):
+            # Para búsqueda robusta, limpiamos los títulos y comparamos insensible a mayúsculas/minúsculas
+            if clean_title(item['title']).lower() in (page_text or "").lower():
+                results.append({
+                    'title': item['title'],
+                    'level': item['level'],
+                    'raw': item['raw'],
+                    # El número de página debe respetar el offset (1-indexed)
+                    'page': page_num + 1 + offset
+                })
+                found = True
+                break
+        if not found:
+            results.append({
+                'title': item['title'],
+                'level': item['level'],
+                'raw': item['raw'],
+                'page': None  # No se encontró el título en ninguna página
+            })
+    return results
+
+# Prueba rápida
+if __name__ == "__main__":
+    outline_pages = find_outline_pages(
+        pdf_path="../input.pdf",
+        outline_path="../content.txt",
+        offset=1  # Si la numeración inicia en la página 2 (por ejemplo), pon 1
+    )
+    for item in outline_pages:
+        print(f"{item['raw']} --- Página: {item['page']}")
+```
+
+---
+
+## **¿Qué hace este flujo?**
+
+* **parse\_outline:** Lee tu `content.txt` y entrega una lista ordenada y con jerarquía.
+* **extract\_pages\_text:** Saca el texto de todas las páginas.
+* **find\_outline\_pages:** Busca cada título del outline en el texto de las páginas y asocia en cuál lo encontró (respetando offset para que coincida con la numeración real del PDF).
+
+---
+
+## **¿Cómo pruebas este paso?**
+
+1. **Pon tu `input.pdf` y tu `content.txt` en la raíz del proyecto.**
+2. **Ejecuta:**
+
+   ```bash
+   python src/toc.py
+   ```
+3. **Verifica que te imprime para cada capítulo/tema en qué página lo encontró (o None si no lo halló).**
+
+---
+
+¿Quieres que la siguiente parte sea cómo **generar la página de TOC en PDF** y cómo inyectarla antes de la primera página numerada?
+¿Necesitas que te explique cómo ajustar la búsqueda para diferentes formatos?
+¿O quieres afinar algo antes?
