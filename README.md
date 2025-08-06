@@ -109,3 +109,156 @@ __pycache__/
 *.sqlite3
 *.log   
 *.env
+
+¡Por supuesto! Aquí va **Parte II**, adaptada a la estructura profesional del proyecto que definimos, con explicación paso a paso.
+
+---
+
+¡Perfecto! Aquí tienes **Parte II** con todo el **código, nombres de archivos, variables y funciones en inglés**. Las explicaciones siguen en español.
+
+---
+
+# **Parte II — Numerar páginas de un PDF con offset**
+
+## **Estructura del proyecto (actualizada):**
+
+```
+pdf-num-toc/
+├── requirements.txt
+├── input.pdf             # PDF de prueba
+└── src/
+    ├── __init__.py
+    ├── main.py           # Script principal
+    └── numbering.py      # Lógica para numerar páginas
+```
+
+*Nota: ahora el PDF se llama `input.pdf` y el archivo de salida será `numbered.pdf`.*
+
+---
+
+## **¿Qué va a hacer este módulo?**
+
+* Recibe un PDF de entrada.
+* Añade número de página en cada hoja, **empezando desde una página X** (offset).
+* Guarda un PDF nuevo con la numeración añadida.
+
+---
+
+## **A. Crea el archivo `src/numbering.py`**
+
+```python
+from pypdf import PdfReader, PdfWriter  # Para leer y escribir archivos PDF
+from fpdf import FPDF                   # Para generar páginas PDF desde cero (el overlay del número)
+import os                               # Para eliminar archivos temporales
+
+def add_page_numbers(input_path, output_path, offset=0, font_size=12):
+    """
+    Añade números de página a un PDF existente.
+    El número aparece en la esquina superior derecha de cada página, a partir del offset.
+    
+    Args:
+        input_path (str): Ruta del PDF original (entrada).
+        output_path (str): Ruta donde se guardará el PDF numerado (salida).
+        offset (int): Número de páginas a omitir antes de empezar la numeración (por ejemplo, portadas o índice).
+        font_size (int): Tamaño de la fuente para el número de página.
+    """
+
+    # Lee el PDF de entrada completo
+    reader = PdfReader(input_path)
+    # Crea un escritor (output) para el PDF final numerado
+    writer = PdfWriter()
+    # Número total de páginas
+    num_pages = len(reader.pages)
+
+    # Recorre todas las páginas del PDF original
+    for i, page in enumerate(reader.pages):
+        # Solo añade el número si la página está después del offset
+        if i >= offset:
+            # Convierte el tamaño de la página de puntos a milímetros (fpdf trabaja en mm)
+            width = float(page.mediabox.width) * 0.352778
+            height = float(page.mediabox.height) * 0.352778
+
+            # Crea un nuevo PDF temporal del mismo tamaño que la página original
+            num_pdf = FPDF(unit="mm", format=[width, height])
+            num_pdf.add_page()
+            num_pdf.set_font("Arial", size=font_size)
+            
+            # Establece la posición del número (esquina superior derecha)
+            # width - 30: 30 mm del borde derecho
+            # 10: 10 mm desde la parte superior
+            num_pdf.set_xy(width - 30, 10)
+            
+            # Escribe el número de página (centrado a la derecha)
+            num_pdf.cell(15, 10, str(i - offset + 1), 0, 0, "R")
+            
+            # Guarda el PDF temporal con solo el número
+            temp_name = "temp_page_num.pdf"
+            num_pdf.output(temp_name)
+
+            # Lee el PDF temporal y obtiene la primera (y única) página
+            num_reader = PdfReader(temp_name)
+            number_page = num_reader.pages[0]
+            
+            # Superpone (merge) el PDF temporal sobre la página original
+            # NOTA: El fondo blanco del overlay puede tapar contenido original debajo.
+            page.merge_page(number_page)
+            
+            # Elimina el archivo temporal para no dejar basura en disco
+            os.remove(temp_name)
+
+        # Añade la página (numerada o no) al PDF de salida
+        writer.add_page(page)
+
+    # Escribe el PDF final en el disco
+    with open(output_path, "wb") as f_out:
+        writer.write(f_out)
+```
+
+---
+
+## **B. Crea el archivo `src/main.py`**
+
+```python
+import os
+from pypdf import PdfReader
+from numbering import add_page_numbers
+
+if __name__ == "__main__":
+    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    input_file = os.path.join(base_path, "input.pdf")
+    output_file = os.path.join(base_path, "numbered.pdf")
+
+    reader = PdfReader(input_file)
+    print("Is Encrypted:", reader.is_encrypted)
+
+    add_page_numbers(
+        input_path=input_file,
+        output_path=output_file,
+        offset=1,       # Numerar desde la primera
+        font_size=12    # ¡Grande!
+    )
+```
+
+---
+
+## **Explicación rápida**
+
+* **offset:** Desde qué página empieza la numeración (0 = la primera página).
+* **merge\_page:** Usa el número generado con FPDF y lo superpone a la página real.
+* **os.remove:** Borra el PDF temporal que contiene el número, así nunca dejas archivos basura.
+
+---
+
+## **¿Cómo probarlo?**
+
+1. **Pon tu archivo PDF de prueba** en la raíz del proyecto y nómbralo `input.pdf`.
+2. **Desde la raíz del proyecto**, ejecuta:
+
+   ```bash
+   python src/main.py
+   ```
+3. **Revisa el archivo** `numbered.pdf` que debe aparecer junto a tu PDF de entrada.
+
+---
+
+
