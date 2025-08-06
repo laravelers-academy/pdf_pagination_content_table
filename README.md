@@ -356,10 +356,6 @@ Cuando tengas esto listo:
 
 ---
 
-¡Por supuesto! Aquí tienes **todo desde la Parte IV**, súper detallado y **con los comentarios incluidos** en cada sección de código. Así puedes continuar el desarrollo y usarlo como referencia didáctica:
-
----
-
 # **Parte IV — Parsear el outline (content.txt) y buscar capítulos/temas en el PDF**
 
 ---
@@ -528,6 +524,176 @@ if __name__ == "__main__":
 
 ---
 
-¿Quieres que la siguiente parte sea cómo **generar la página de TOC en PDF** y cómo inyectarla antes de la primera página numerada?
-¿Necesitas que te explique cómo ajustar la búsqueda para diferentes formatos?
-¿O quieres afinar algo antes?
+# **Parte V — Crear y agregar la Tabla de Contenido (TOC) al PDF**
+
+## **¿Qué vamos a lograr?**
+
+1. Tomar la lista de capítulos/temas con sus páginas (ya calculados).
+2. Generar un PDF (usando FPDF) con una o varias páginas de TOC, formateada de manera profesional.
+3. Insertar esas páginas **antes de la primera página numerada** (respetando el offset).
+
+---
+
+## **A. Nueva estructura del proyecto**
+
+Agrega un archivo más en `src/` para la lógica del TOC:
+
+```
+pdf-num-toc/
+├── requirements.txt
+├── input.pdf
+├── content.txt
+└── src/
+    ├── __init__.py
+    ├── main.py
+    ├── numbering.py
+    ├── toc.py
+    ├── outline_parser.py
+    └── toc_pdf.py       # Nuevo: crea el PDF de la tabla de contenido
+```
+
+---
+
+## **B. Generar la tabla de contenido en PDF**
+
+**Crea `src/toc_pdf.py`**
+Este archivo generará la(s) página(s) de TOC usando FPDF, basada en la estructura que ya tienes.
+
+```python
+from fpdf import FPDF
+
+def create_toc_pdf(toc_items, output_path, title="Tabla de Contenido"):
+    """
+    Genera un PDF de TOC profesional a partir de una lista de dicts.
+    Cada item debe tener: title, level, page
+    """
+    pdf = FPDF(unit="mm", format="A4")
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 18)
+    pdf.cell(0, 15, title, 0, 1, "C")
+    pdf.ln(8)
+
+    pdf.set_font("Arial", size=12)
+    line_height = pdf.font_size * 2.2
+
+    for item in toc_items:
+        if item['page'] is None:
+            continue  # Opcional: saltar temas no encontrados
+        # Sangría según nivel (capítulo, subtema, etc)
+        indent = "    " * item['level']
+        title = f"{indent}{item['raw']}"
+        # Ajusta el ancho disponible para puntos y página
+        title_width = pdf.get_string_width(title)
+        dots_width = pdf.w - 40 - title_width - 20
+        dots = '.' * max(8, int(dots_width / 2.2))
+        page_str = str(item['page'])
+        # Imprime línea del TOC
+        pdf.cell(0, line_height, f"{title} {dots} {page_str}", 0, 1, "L")
+
+    pdf.output(output_path)
+
+# Prueba rápida
+if __name__ == "__main__":
+    # Ejemplo de uso
+    # Supón que ya tienes tu lista de capítulos con páginas (toc_items)
+    toc_items = [
+        {'title': 'Capítulo 1', 'raw': '1. Capítulo 1', 'level': 0, 'page': 3},
+        {'title': 'Tema 1.1', 'raw': '1.1 Tema 1.1', 'level': 1, 'page': 4},
+        {'title': 'Tema 1.2', 'raw': '1.2 Tema 1.2', 'level': 1, 'page': 6},
+        # ...
+    ]
+    create_toc_pdf(toc_items, "../toc.pdf")
+```
+
+---
+
+## **C. Insertar la(s) página(s) de TOC al PDF numerado**
+
+Puedes hacerlo desde tu `main.py` o con un módulo nuevo. Aquí te muestro la lógica:
+
+```python
+import os
+from pypdf import PdfReader
+from numbering import add_page_numbers
+from toc import find_outline_pages
+from toc_pdf import create_toc_pdf
+from outline_parser import parse_outline
+from pypdf import PdfWriter
+
+def insert_toc_into_pdf(toc_pdf_path, original_pdf_path, output_pdf_path):
+    """
+    Inserta las páginas del TOC (toc_pdf_path) antes del PDF original (original_pdf_path).
+    """
+    toc_reader = PdfReader(toc_pdf_path)
+    orig_reader = PdfReader(original_pdf_path)
+    writer = PdfWriter()
+
+    # Añade TOC
+    for page in toc_reader.pages:
+        writer.add_page(page)
+    # Añade el resto del PDF numerado
+    for page in orig_reader.pages:
+        writer.add_page(page)
+    with open(output_pdf_path, "wb") as f_out:
+        writer.write(f_out)
+
+if __name__ == "__main__":
+    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    input_pdf = os.path.join(base_path, "input.pdf")
+    numbered_pdf = os.path.join(base_path, "numbered.pdf")
+    toc_txt = os.path.join(base_path, "content.txt")
+    toc_pdf = os.path.join(base_path, "toc.pdf")
+    final_pdf = os.path.join(base_path, "final_with_toc.pdf")
+    offset = 1  # Por ejemplo, portada
+
+    # 1. Numerar el PDF
+    reader = PdfReader(input_pdf)
+    print("Is Encrypted:", reader.is_encrypted)
+    add_page_numbers(
+        input_path=input_pdf,
+        output_path=numbered_pdf,
+        offset=offset,
+        font_size=12
+    )
+    print("PDF numerado generado.")
+
+    # 2. Encontrar capítulos/temas y sus páginas
+    outline_items = find_outline_pages(
+        pdf_path=input_pdf,
+        outline_path=toc_txt,
+        offset=offset
+    )
+    print("Capítulos/temas identificados.")
+
+    # 3. Generar el PDF del TOC
+    create_toc_pdf(outline_items, toc_pdf)
+    print("PDF de TOC generado.")
+
+    # 4. Insertar el TOC antes del contenido numerado
+    insert_toc_into_pdf(
+        toc_pdf_path=toc_pdf,
+        original_pdf_path=numbered_pdf,
+        output_pdf_path=final_pdf
+    )
+    print(f"¡Listo! PDF final generado en: {final_pdf}")
+
+```
+
+---
+
+### **Notas clave:**
+
+* El TOC se insertará **antes de la numeración**, así el usuario ve el índice antes de los capítulos/temas.
+* Si tu numeración empieza en la página 2 (por ejemplo, offset=1), asegúrate de ajustar el conteo de páginas al generar el TOC.
+* Puedes hacer el flujo completamente automático (crear TOC, generar PDF numerado, insertar TOC) con un solo script.
+
+---
+
+## **¿Qué sigue?**
+
+* Puedes personalizar el diseño del TOC (tamaño de fuente, títulos, márgenes).
+* Si tu TOC ocupa más de una página, FPDF lo maneja automáticamente.
+* Si tienes portadas o páginas preliminares, considera el offset en todos los pasos para que la paginación y el TOC sean coherentes.
+
+---
