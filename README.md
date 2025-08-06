@@ -261,4 +261,97 @@ if __name__ == "__main__":
 
 ---
 
+# **Parte III — Detección de capítulos y temas para la tabla de contenido**
 
+## **¿Qué vamos a lograr en esta sección?**
+
+1. **Leer el texto de cada página del PDF.**
+2. **Comparar el texto con tu lista jerárquica de capítulos/temas.**
+3. **Registrar en qué página aparece cada capítulo/tema (para el TOC).**
+
+---
+
+## **A. Nueva estructura del proyecto**
+
+Agrega un archivo más en `src/` para este propósito:
+
+```
+pdf-num-toc/
+├── requirements.txt
+├── input.pdf
+└── src/
+    ├── __init__.py
+    ├── main.py
+    ├── numbering.py
+    └── toc.py         # Nuevo: lógica para buscar capítulos/temas y crear TOC
+```
+
+---
+
+## **B. Paso 1 — Leer el texto de cada página del PDF**
+
+Usaremos `pdfplumber` porque es confiable para extraer texto de cada página de forma legible.
+
+### **1. Instala pdfplumber si no lo hiciste:**
+
+```bash
+pip install pdfplumber
+```
+
+Actualizar `requirements.txt`, para ello ejecutas
+```bash
+pip freeze > requirements.txt
+```
+
+---
+
+### **2. Crea el archivo `src/toc.py`**
+
+**Solo este paso: función para extraer el texto de cada página y dejarlo listo para analizar.**
+
+```python
+import pdfplumber  # Importa la librería pdfplumber, que sirve para extraer texto de archivos PDF
+
+def extract_pages_text(pdf_path):
+    """
+    Devuelve una lista con el texto extraído de cada página de un PDF.
+    
+    Args:
+        pdf_path (str): Ruta al archivo PDF que quieres procesar.
+        
+    Returns:
+        list[str]: Una lista donde cada elemento es el texto completo de una página del PDF.
+    """
+    pages_text = []  # Aquí se guardarán los textos de cada página
+
+    # Abre el PDF usando pdfplumber
+    with pdfplumber.open(pdf_path) as pdf:
+        # Recorre todas las páginas del PDF
+        for page in pdf.pages:
+            # Extrae el texto de la página; si no hay texto, usa string vacío ("")
+            text = page.extract_text() or ""
+            # Agrega el texto extraído a la lista
+            pages_text.append(text)
+    
+    # Retorna la lista con los textos de todas las páginas
+    return pages_text
+
+# --- Bloque de prueba: solo se ejecuta si corres este archivo directamente ---
+if __name__ == "__main__":
+    # Extrae el texto de todas las páginas del PDF "../input.pdf"
+    texts = extract_pages_text("input.pdf")
+    
+    # Imprime el texto de las primeras 5 páginas para verificar que funciona
+    for i, t in enumerate(texts[:5]):
+        print(f"--- Página {i+1} ---\n{t}\n")
+```
+
+---
+
+### **¿Qué sigue?**
+
+Cuando tengas esto listo:
+
+* Verifica que **sí imprime texto de cada página**.
+
+---
