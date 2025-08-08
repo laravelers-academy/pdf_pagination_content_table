@@ -60,23 +60,13 @@ if __name__ == "__main__":
     )
     print("PDF numerado generado.")
 
-    # 2. Encontrar capítulos/temas y sus páginas
-    outline_items = find_outline_pages(
-        pdf_path=input_pdf,
-        outline_path=toc_txt,
-        offset=offset
-    )
-    print("Capítulos/temas identificados.")
 
-    # 3. Generar el PDF del TOC
-    create_toc_pdf(outline_items, toc_pdf)
-    print("PDF de TOC generado.")
+    writer = PdfWriter(clone_from="numbered.pdf")
 
-    # 4. Insertar el TOC después de la portada
-    insert_toc_after_offset(
-        toc_pdf_path=toc_pdf,
-        original_pdf_path=numbered_pdf,
-        output_pdf_path=final_pdf,
-        offset=offset
-    )
-    print(f"¡Listo! PDF final generado en: {final_pdf}")
+    for page in writer.pages:
+        page.compress_content_streams() 
+
+    with open("compressed.pdf", "wb") as f:
+        writer.write(f)
+
+    print("PDF comprimido generado.")
