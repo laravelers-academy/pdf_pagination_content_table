@@ -4,7 +4,7 @@ from numbering import add_page_numbers
 from toc import find_outline_pages
 from toc_pdf import create_toc_pdf
 from outline_parser import parse_outline
-from pypdf import PdfWriter
+from pypdf import PdfReader, PdfWriter
 
 def insert_toc_into_pdf(toc_pdf_path, original_pdf_path, output_pdf_path):
     """
@@ -40,6 +40,19 @@ def insert_toc_after_offset(toc_pdf_path, original_pdf_path, output_pdf_path, of
     with open(output_pdf_path, "wb") as f_out:
         writer.write(f_out)
 
+def split_pdf_first_pages(input_pdf, output_pdf, num_pages=50):
+    reader = PdfReader(input_pdf)
+    writer = PdfWriter()
+
+    # Añadir las primeras N páginas
+    for i in range(min(num_pages, len(reader.pages))):
+        writer.add_page(reader.pages[i])
+
+    # Guardar el nuevo PDF
+    with open(output_pdf, "wb") as f:
+        writer.write(f)
+
+
 if __name__ == "__main__":
     base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     input_pdf = os.path.join(base_path, "input.pdf")
@@ -70,3 +83,12 @@ if __name__ == "__main__":
         writer.write(f)
 
     print("PDF comprimido generado.")
+
+    # Split PDF
+    split_pdf_first_pages(
+        input_pdf="compressed.pdf",
+        output_pdf="demo.pdf",
+        num_pages=50
+    )
+
+    print("PDF dividido correctamente.")
