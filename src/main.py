@@ -52,7 +52,6 @@ def split_pdf_first_pages(input_pdf, output_pdf, num_pages=50):
     with open(output_pdf, "wb") as f:
         writer.write(f)
 
-
 if __name__ == "__main__":
     base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     input_pdf = os.path.join(base_path, "input.pdf")
@@ -79,14 +78,14 @@ if __name__ == "__main__":
     for page in writer.pages:
         page.compress_content_streams() 
 
-    with open("compressed.pdf", "wb") as f:
+    with open("full.pdf", "wb") as f:
         writer.write(f)
 
     print("PDF comprimido generado.")
 
     # Split PDF
     split_pdf_first_pages(
-        input_pdf="compressed.pdf",
+        input_pdf="full.pdf",
         output_pdf="demo.pdf",
         num_pages=50
     )
